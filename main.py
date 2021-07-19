@@ -137,10 +137,10 @@ while True:
         pygame.display.update()
 
         # Checking if the snake hit the food
-        if (snake.x < food_x + 10 and
-            snake.x + 10 > food_x and
-            snake.y < food_y + 10 and
-                snake.y + 10 > food_y):
+        if (snake.x < food_x + 8 and
+            snake.x + snake.width + 4 > food_x and
+            snake.y < food_y + 8 and
+                snake.y + snake.height + 4 > food_y):
             # Increasing score
             score += 1
             # Food new position
