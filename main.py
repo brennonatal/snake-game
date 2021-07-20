@@ -18,6 +18,17 @@ red = (250, 0, 0)
 # Setting screen
 screen = pygame.display.set_mode(size)
 
+# Starting the mixer
+pygame.mixer.init()
+  
+# Setting the theme song
+pygame.mixer.music.load("assets/musics/Snake_III_theme_song.mp3")
+pygame.mixer.music.set_volume(0.7)
+# pygame.mixer.music.play(loops=-1, start=2.5)
+# Setting game over sound
+# gameover_sound.load("assets/musics/game_over_sound.mp3")
+
+
 # Defining fonts to use
 playFont = pygame.font.Font('assets/fonts/SigmarOne-Regular.ttf', 30)
 titleFont = pygame.font.Font('assets/fonts/OtomanopeeOne-Regular.ttf', 80)
@@ -40,22 +51,23 @@ x_move = 0
 y_move = 0
 
 # Food properties
-food_x = round(random.randrange(0, width - snake.width) / 10) * 10
-food_y = round(random.randrange(0, height - snake.height) / 10) * 10
+food_x = round(random.randrange(10, width - snake.width) / 10) * 10
+food_y = round(random.randrange(10, height - snake.height) / 10) * 10
 food_ratio = 4
 
 clock = pygame.time.Clock()
 
 while True:
-
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             sys.exit()
         if event.type == pygame.KEYDOWN:
-            # Key options when not playing
+            # Key options while not playing
             if game_over:
                 # Play game if ENTER is pressed
                 if event.key == pygame.K_RETURN:
+                    # Load theme song again
+                    pygame.mixer.music.play(loops=-1, start=2.5)
                     time.sleep(0.2)
                     score = 0
                     game_over = False
@@ -84,6 +96,9 @@ while True:
     if game_over:
         # When game is over
         if score != None:
+            # Stop music
+            pygame.mixer.music.stop()
+
             screen.fill(red)
 
             # Game over message
@@ -112,6 +127,8 @@ while True:
             if click:
                 mouse = pygame.mouse.get_pos()
                 if playButton.collidepoint(mouse):
+                    # PLay music again
+                    pygame.mixer.music.play(loops=-1, start=2.5)
                     time.sleep(0.2)
                     score = 0
                     game_over = False
@@ -136,6 +153,7 @@ while True:
             if click:
                 mouse = pygame.mouse.get_pos()
                 if playButton.collidepoint(mouse):
+                    pygame.mixer.music.play(loops=-1, start=2.5)
                     time.sleep(0.2)
                     score = 0
                     game_over = False
@@ -170,22 +188,25 @@ while True:
             # Increasing score
             score += 1
             # Food new position
-            food_x = round(random.randrange(0, width - snake.width) / 10) * 10
+            food_x = round(random.randrange(10, width - snake.width) / 10) * 10
             food_y = round(random.randrange(
-                0, height - snake.height) / 10) * 10
+                10, height - snake.height) / 10) * 10
             # Increasing snake speed
             snake.speed += 5
 
         if snake.x >= width or snake.x < 0 or snake.y >= height or snake.y <= 0:
+            # Stop theme song
+            pygame.mixer.music.stop()
+
             game_over = True
             # Stopping snake movement
             x_move = 0
             y_move = 0
             snake.reset()
             # New food location
-            food_x = round(random.randrange(0, width - snake.width) / 10) * 10
+            food_x = round(random.randrange(10, width - snake.width) / 10) * 10
             food_y = round(random.randrange(
-                0, height - snake.height) / 10) * 10
+                10, height - snake.height) / 10) * 10
 
         clock.tick(snake.speed)
     pygame.display.flip()
