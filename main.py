@@ -43,8 +43,12 @@ bg = pygame.transform.scale(bg, size)
 game_over = True
 score = None
 
-# Initializing snake head
-snake = Snake()
+best_game = 0
+
+# Initializing snake
+snake_head = SnakeCell()
+snake_body = [snake_head]
+snake_speed = 10
 
 # To keep track of the moves
 x_move = 0
@@ -96,6 +100,16 @@ while True:
     if game_over:
         # When game is over
         if score != None:
+            # Register only best games
+            if score > best_game:
+                best_game = score
+                records = pd.read_csv('records.csv', index_col=0)
+                # Register only if its is a new record
+                if score > records.tail(n=1).iloc[0].score:
+                    records = records.append(
+                        {'score': score}, ignore_index=True)
+                    records.to_csv('records.csv')
+
             # Stop music
             pygame.mixer.music.stop()
 
