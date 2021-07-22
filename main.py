@@ -1,10 +1,12 @@
+import random
 import sys
 import time
-import random
 
+import pandas as pd
 import pygame
 
-from snake import Snake
+from snake import SnakeCell
+from util import ate_food, snake_collision
 
 pygame.init()
 size = width, height = 600, 400
@@ -20,14 +22,11 @@ screen = pygame.display.set_mode(size)
 
 # Starting the mixer
 pygame.mixer.init()
-  
+
 # Setting the theme song
 pygame.mixer.music.load("assets/musics/Snake_III_theme_song.mp3")
 pygame.mixer.music.set_volume(0.7)
-# pygame.mixer.music.play(loops=-1, start=2.5)
-# Setting game over sound
-# gameover_sound.load("assets/musics/game_over_sound.mp3")
-
+pygame.mixer.music.play(loops=-1, start=2.5)
 
 # Defining fonts to use
 playFont = pygame.font.Font('assets/fonts/SigmarOne-Regular.ttf', 30)
@@ -55,8 +54,8 @@ x_move = 0
 y_move = 0
 
 # Food properties
-food_x = round(random.randrange(10, width - snake.width) / 10) * 10
-food_y = round(random.randrange(10, height - snake.height) / 10) * 10
+food_x = round(random.randrange(10, width - 10) / 10) * 10
+food_y = round(random.randrange(10, height - 10) / 10) * 10
 food_ratio = 4
 
 clock = pygame.time.Clock()
@@ -82,22 +81,25 @@ while True:
             else:
                 # Snake controllers
                 if event.key == pygame.K_LEFT and x_move == 0:
-                    x_move = -5
+                    x_move = -snake_head.size
                     y_move = 0
                 elif event.key == pygame.K_RIGHT and x_move == 0:
-                    x_move = 5
+                    x_move = snake_head.size
                     y_move = 0
                 elif event.key == pygame.K_UP and y_move == 0:
-                    y_move = -5
+                    y_move = -snake_head.size
                     x_move = 0
                 elif event.key == pygame.K_DOWN and y_move == 0:
-                    y_move = 5
+                    y_move = snake_head.size
                     x_move = 0
 
     screen.blit(bg, (0, 0))
 
     # To display the initial menu or game over
     if game_over:
+        # To ensure that the snake starts with the head only
+        snake_body = [snake_head]
+        
         # When game is over
         if score != None:
             # Register only best games
@@ -146,6 +148,7 @@ while True:
                     time.sleep(0.2)
                     score = 0
                     game_over = False
+
         # Initial menu
         else:
             # Draw title
@@ -181,46 +184,70 @@ while True:
         scoreRect.center = (50, 20)
         screen.blit(score_text, scoreRect)
 
-        # Constantly move the snake using last movement
-        snake.x += x_move
-        snake.y += y_move
+        # Constantly move the snake head using last movement
+        snake_head = SnakeCell(
+            x=snake_body[0].x + x_move, y=snake_body[0].y + y_move)
+        # Always drawing a new head in the movement direction and removing the tail
+        snake_body.insert(0, snake_head)
+        snake_body.pop()
+    
+        if snake_collision(snake_head=snake_head, snake_body=snake_body[1:]):
+            game_over = True
 
         # Draw snake
-        pygame.draw.rect(
-            screen, green, [snake.x, snake.y, snake.height, snake.width])
+        for cell in snake_body:
+            pygame.draw.rect(
+                screen, green, [cell.x, cell.y, cell.size, cell.size])
 
         # Draw food
         pygame.draw.circle(
             screen, red, (food_x, food_y), food_ratio)
         pygame.display.update()
 
-        # Checking if the snake hit the food
-        if (snake.x < food_x + 8 and
-            snake.x + snake.width + food_ratio > food_x and
-            snake.y < food_y + 8 and
-                snake.y + snake.height + food_ratio > food_y):
+        # Checking if the snake ate the food
+        if ate_food(food_x=food_x, food_y=food_y, food_ratio=food_ratio, snake_x=snake_head.x, snake_y=snake_head.y, snake_size=snake_head.size):
             # Increasing score
             score += 1
-            # Food new position
-            food_x = round(random.randrange(10, width - snake.width) / 10) * 10
-            food_y = round(random.randrange(
-                10, height - snake.height) / 10) * 10
-            # Increasing snake speed
-            snake.speed += 5
 
-        if snake.x >= width or snake.x < 0 or snake.y >= height or snake.y <= 0:
+            # Increasing snake length
+            tail = snake_body[-1]
+            snake_body.append(tail)
+
+            # Food new position
+            food_x = round(random.randrange(
+                10, width - snake_head.size) / 10) * 10
+            food_y = round(random.randrange(
+                10, height - snake_head.size) / 10) * 10
+            # Increasing snake speed
+            snake_speed += 0.5
+
+        # To make it borderless
+        # if snake.x > width:
+        #     snake.x = 0
+        # elif snake.x < 0:
+        #     snake.x = width
+        # elif snake.y > height:
+        #     snake.y = 0
+        # elif snake.y < 0:
+        #     snake.y = height
+
+        if (snake_head.x >= width or snake_head.x < 0 or snake_head.y >= height or snake_head.y <= 0):
             # Stop theme song
             pygame.mixer.music.stop()
 
+            # Initial config
             game_over = True
             # Stopping snake movement
             x_move = 0
             y_move = 0
-            snake.reset()
+            snake_head.reset()
             # New food location
-            food_x = round(random.randrange(10, width - snake.width) / 10) * 10
+            food_x = round(random.randrange(
+                10, width - snake_head.size) / 10) * 10
             food_y = round(random.randrange(
-                10, height - snake.height) / 10) * 10
+                10, height - snake_head.size) / 10) * 10
 
-        clock.tick(snake.speed)
+            snake_speed = 10
+
+        clock.tick(snake_speed)
     pygame.display.flip()
