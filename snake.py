@@ -1,18 +1,13 @@
-class Snake():
+class SnakeCell():
     x = 0
     y = 0
-    height = 0
-    width = 0
-    speed = 0
+    size = 0
 
-    def __init__(self):
-        self.x = 210
-        self.y = 270
-        self.height = 10
-        self.width = 10
-        self.speed = 20
+    def __init__(self, x=300, y=200):
+        self.x = x
+        self.y = y
+        self.size = 10
     
     def reset(self):
-        self.x = 210
-        self.y = 270
-        self.speed = 20
+        self.x = 300
+        self.y = 200
