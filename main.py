@@ -26,7 +26,6 @@ pygame.mixer.init()
 # Setting the theme song
 pygame.mixer.music.load("assets/musics/Snake_III_theme_song.mp3")
 pygame.mixer.music.set_volume(0.7)
-pygame.mixer.music.play(loops=-1, start=2.5)
 
 # Defining fonts to use
 playFont = pygame.font.Font('assets/fonts/SigmarOne-Regular.ttf', 30)
@@ -107,10 +106,6 @@ while True:
         if score != None:
             # Register only best games
             if score > best_game:
-                best_game = score
-                records = pd.read_csv('records.csv', index_col=0)
-                # Register only if its is a new record
-                if score > records.tail(n=1).iloc[0].score:
                 records = records.append(
                     {'score': score}, ignore_index=True)
                 records.to_csv('records.csv')
@@ -201,9 +196,25 @@ while True:
         # Always drawing a new head in the movement direction and removing the tail
         snake_body.insert(0, snake_head)
         snake_body.pop()
-    
+
+
         if snake_collision(snake_head=snake_head, snake_body=snake_body[1:]):
+            # Stop theme song
+            pygame.mixer.music.stop()
+
+            # Initial config
             game_over = True
+            # Stopping snake movement
+            x_move = 0
+            y_move = 0
+            snake_head.reset()
+            # New food location
+            food_x = round(random.randrange(
+                10, width - snake_head.size) / 10) * 10
+            food_y = round(random.randrange(
+                10, height - snake_head.size) / 10) * 10
+
+            snake_speed = 10
 
         # Draw snake
         for cell in snake_body:
