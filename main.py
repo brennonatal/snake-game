@@ -42,7 +42,10 @@ bg = pygame.transform.scale(bg, size)
 game_over = True
 score = None
 
+# Get the highest score
 best_game = 0
+records = pd.read_csv('records.csv', index_col=0)
+best_game = records.tail(n=1).iloc[0].score
 
 # Initializing snake
 snake_head = SnakeCell()
@@ -108,9 +111,10 @@ while True:
                 records = pd.read_csv('records.csv', index_col=0)
                 # Register only if its is a new record
                 if score > records.tail(n=1).iloc[0].score:
-                    records = records.append(
-                        {'score': score}, ignore_index=True)
-                    records.to_csv('records.csv')
+                records = records.append(
+                    {'score': score}, ignore_index=True)
+                records.to_csv('records.csv')
+                best_game = score
 
             # Stop music
             pygame.mixer.music.stop()
@@ -120,15 +124,22 @@ while True:
             # Game over message
             title = titleFont.render('Game Over', True, black)
             titleRect = title.get_rect()
-            titleRect.center = ((width / 2), 150)
+            titleRect.center = ((width / 2), 130)
             screen.blit(title, titleRect)
 
             # Draw score
             score_text = regularFont.render(
                 f'You scored {score} point{"s" if score != 1 else ""}', True, black)
             scoreRect = score_text.get_rect()
-            scoreRect.center = ((width / 2), 230)
+            scoreRect.center = ((width / 2), 210)
             screen.blit(score_text, scoreRect)
+            
+            # Draw highest score
+            high_score = regularFont.render(
+                f'The highest score is: {best_game}', True, black)
+            scoreRect = high_score.get_rect()
+            scoreRect.center = ((width / 2), 240)
+            screen.blit(high_score, scoreRect)
 
             # Draw play again button
             playButton = pygame.Rect(
@@ -136,7 +147,7 @@ while True:
             play = playFont.render('play again', True, black)
             playRect = play.get_rect()
             playRect.center = playButton.center
-            screen.blit(play, (210, 260))
+            screen.blit(play, (210, 280))
 
             # Check if button is clicked
             click, _, _ = pygame.mouse.get_pressed()
