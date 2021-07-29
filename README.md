@@ -6,7 +6,7 @@ Just a snake game for fun. Enjoy!
 
 First download libraries with:
 ```python
-pip3 install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 Then run the following command to run the game:
