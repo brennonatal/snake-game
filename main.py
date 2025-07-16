@@ -106,8 +106,8 @@ while True:
         if score != None:
             # Register only best games
             if score > best_game:
-                records = records.append(
-                    {'score': score}, ignore_index=True)
+                new_record = pd.DataFrame({'score': [score]})
+                records = pd.concat([records, new_record], ignore_index=True)
                 records.to_csv('records.csv')
                 best_game = score
 
@@ -143,6 +143,12 @@ while True:
             playRect = play.get_rect()
             playRect.center = playButton.center
             screen.blit(play, (210, 280))
+            
+            # Draw press enter text
+            press_enter = smallFont.render('(press ENTER)', True, black)
+            press_enter_rect = press_enter.get_rect()
+            press_enter_rect.center = (playButton.center[0], playButton.center[1] + 56)
+            screen.blit(press_enter, press_enter_rect)
 
             # Check if button is clicked
             click, _, _ = pygame.mouse.get_pressed()

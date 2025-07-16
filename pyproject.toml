@@ -1,0 +1,14 @@
+[project]
+name = "snake-game"
+version = "0.1.0"
+description = "A classic Snake game implementation using pygame"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.3.1",
+    "pygame>=2.6.1",
+]
+
+[tool.uv]
+dev-dependencies = []
+
+[tool.uv.sources] 
