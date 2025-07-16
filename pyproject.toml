@@ -4,8 +4,13 @@ version = "0.1.0"
 description = "A classic Snake game implementation using pygame"
 requires-python = ">=3.10"
 dependencies = [
+    "gym>=0.26.2",
+    "matplotlib>=3.10.3",
+    "numpy>=2.2.6",
     "pandas>=2.3.1",
     "pygame>=2.6.1",
+    "tensorboard>=2.19.0",
+    "torch>=2.7.1",
 ]
 
 [tool.uv]
