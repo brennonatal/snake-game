@@ -173,3 +173,5 @@ cython_debug/
 *.mp4
 .DS_Store
 records.csv
+*logs
+*.pth

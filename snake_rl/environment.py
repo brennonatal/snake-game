@@ -26,7 +26,9 @@ class SnakeEnvironment:
                  height: int = 400, 
                  cell_size: int = 10, 
                  headless: bool = True,
-                 max_steps: Optional[int] = 1000):
+                 max_steps: Optional[int] = 1000,
+                 reward_type: str = "shaped",
+                 fast_mode: bool = False):
         """Initialize the Snake environment.
         
         Args:
@@ -35,11 +37,21 @@ class SnakeEnvironment:
             cell_size: Size of each game cell in pixels
             headless: If True, disable rendering for faster training
             max_steps: Maximum steps per episode (None for unlimited)
+            reward_type: Type of reward system ("sparse", "shaped", "strong_shaped", "potential")
+            fast_mode: If True, optimize for speed with smaller board and simpler calculations
         """
+        # Optimize for speed if requested
+        if fast_mode:
+            width = min(width, 300)  # Smaller board
+            height = min(height, 200)  
+            max_steps = min(max_steps or 1000, 200)  # Shorter episodes
+            
         self.width = width
         self.height = height
         self.cell_size = cell_size
         self.headless = headless
+        self.reward_type = reward_type
+        self.fast_mode = fast_mode
         
         # Grid dimensions
         self.grid_width = width // cell_size
@@ -54,8 +66,12 @@ class SnakeEnvironment:
             3: "RIGHT"
         }
         
-        # State space dimensions
-        self.state_size = self.grid_width * self.grid_height
+        # Initialize state processor
+        from .state import StateProcessor
+        self.state_processor = StateProcessor(self.grid_width, self.grid_height)
+        
+        # State space dimensions (24 features for enhanced representation)
+        self.state_size = self.state_processor.state_size
         
         # Initialize game engine
         self.game_engine = SnakeGameEngine(
@@ -68,7 +84,7 @@ class SnakeEnvironment:
         # Initialize environment
         self.reset()
         
-        logger.info(f"SnakeEnvironment initialized: {self.grid_width}x{self.grid_height} grid, headless={headless}")
+        logger.info(f"SnakeEnvironment initialized: {self.grid_width}x{self.grid_height} grid, headless={headless}, reward_type={reward_type}")
     
     def reset(self) -> np.ndarray:
         """Reset the environment to initial state.
@@ -124,33 +140,20 @@ class SnakeEnvironment:
         """Get current state representation.
         
         Returns:
-            Grid-based state representation (flattened)
+            Enhanced feature vector state representation (24 features)
         """
         game_state = self.game_engine.get_state()
         
-        # Create grid representation
-        grid = np.zeros((self.grid_height, self.grid_width), dtype=np.int8)
+        # Convert snake body to dictionary format for state processor
+        snake_head = {"x": game_state.snake_head.x, "y": game_state.snake_head.y}
+        snake_body = [{"x": segment.x, "y": segment.y} for segment in game_state.snake_body]
+        food_pos = (game_state.food_x, game_state.food_y)
+        direction = (game_state.x_move, game_state.y_move)
         
-        # Mark snake body (value = 2)
-        for segment in game_state.snake_body[1:]:  # Exclude head
-            grid_x = segment.x // self.cell_size
-            grid_y = segment.y // self.cell_size
-            if 0 <= grid_x < self.grid_width and 0 <= grid_y < self.grid_height:
-                grid[grid_y, grid_x] = 2
-        
-        # Mark snake head (value = 1)
-        head_grid_x = game_state.snake_head.x // self.cell_size
-        head_grid_y = game_state.snake_head.y // self.cell_size
-        if 0 <= head_grid_x < self.grid_width and 0 <= head_grid_y < self.grid_height:
-            grid[head_grid_y, head_grid_x] = 1
-        
-        # Mark food (value = 3)
-        food_grid_x = game_state.food_x // self.cell_size
-        food_grid_y = game_state.food_y // self.cell_size
-        if 0 <= food_grid_x < self.grid_width and 0 <= food_grid_y < self.grid_height:
-            grid[food_grid_y, food_grid_x] = 3
-        
-        return grid.flatten()
+        # Use enhanced feature vector encoding
+        return self.state_processor.encode_state(
+            snake_head, snake_body, food_pos, direction, self.cell_size
+        )
     
     def render(self, mode: str = "human") -> None:
         """Render the current state.
@@ -175,13 +178,6 @@ class SnakeEnvironment:
     
     def _calculate_reward(self, old_distance: float, info: Dict[str, Any]) -> float:
         """Calculate reward based on game state and action outcome.
-        
-        Implements the reward structure from the plan:
-        - Large positive for eating food (+100)
-        - Large negative for death (-100)
-        - Distance-based shaping rewards (+10/-5)
-        - Survival bonus (+1)
-        - Length bonus (+2 per body segment)
         
         Args:
             old_distance: Distance to food before action
@@ -209,28 +205,65 @@ class SnakeEnvironment:
             reward += reward_components['timeout_penalty']
             logger.debug("Max steps penalty: -50")
         
-        # Secondary rewards (shaping) - only if game is still playing
+        # Secondary rewards based on reward type
         if not self.game_engine.game_over:
-            new_distance = self._calculate_distance_to_food()
-            
-            # Distance-based shaping reward (as specified in plan)
-            if new_distance < old_distance:
-                reward_components['distance_reward'] = 10.0  # Moving closer to food
-                reward += reward_components['distance_reward']
-            elif new_distance > old_distance:
-                reward_components['distance_penalty'] = -5.0  # Moving away from food
-                reward += reward_components['distance_penalty']
-            else:
-                reward_components['distance_reward'] = 0.0
-            
-            # Small survival bonus (staying alive)
-            reward_components['survival_bonus'] = 1.0
-            reward += reward_components['survival_bonus']
-            
-            # Length bonus (as specified in plan)
-            snake_length = len(self.game_engine.snake_body)
-            reward_components['length_bonus'] = snake_length * 2.0
-            reward += reward_components['length_bonus']
+            if self.reward_type == "sparse":
+                # Only survival bonus, no distance shaping
+                reward_components['survival_bonus'] = 0.1
+                reward += reward_components['survival_bonus']
+                
+            elif self.reward_type == "shaped":
+                # Current moderate distance shaping
+                new_distance = self._calculate_distance_to_food()
+                distance_change = old_distance - new_distance
+                
+                if distance_change > 0:
+                    reward_components['distance_reward'] = 2.0
+                    reward += reward_components['distance_reward']
+                elif distance_change < 0:
+                    reward_components['distance_penalty'] = -1.0
+                    reward += reward_components['distance_penalty']
+                else:
+                    reward_components['no_progress'] = -0.1
+                    reward += reward_components['no_progress']
+                
+                reward_components['survival_bonus'] = 0.1
+                reward += reward_components['survival_bonus']
+                
+            elif self.reward_type == "strong_shaped":
+                # Stronger distance signals for clearer learning
+                new_distance = self._calculate_distance_to_food()
+                distance_change = old_distance - new_distance
+                
+                if distance_change > 0:
+                    reward_components['distance_reward'] = 5.0  # Stronger positive signal
+                    reward += reward_components['distance_reward']
+                elif distance_change < 0:
+                    reward_components['distance_penalty'] = -2.0  # Stronger negative signal
+                    reward += reward_components['distance_penalty']
+                else:
+                    reward_components['no_progress'] = -0.5  # Discourage wandering
+                    reward += reward_components['no_progress']
+                
+                reward_components['survival_bonus'] = 0.1
+                reward += reward_components['survival_bonus']
+                
+            elif self.reward_type == "potential":
+                # Potential-based shaping (theoretically sound)
+                new_distance = self._calculate_distance_to_food()
+                max_distance = self.grid_width + self.grid_height
+                
+                # Potential function: closer to food = higher potential
+                old_potential = 1.0 - (old_distance / max_distance)
+                new_potential = 1.0 - (new_distance / max_distance)
+                
+                # Reward is difference in potential (scaled down)
+                potential_reward = (new_potential - old_potential) * 10.0
+                reward_components['potential_reward'] = potential_reward
+                reward += potential_reward
+                
+                reward_components['survival_bonus'] = 0.1
+                reward += reward_components['survival_bonus']
         
         # Log detailed reward breakdown for debugging
         if logger.isEnabledFor(logging.DEBUG):

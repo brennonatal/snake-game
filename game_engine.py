@@ -85,8 +85,10 @@ class SnakeGameEngine:
         Returns:
             Initial game state
         """
-        # Initialize snake
-        self.snake_head = SnakeCell()
+        # Initialize snake at center of game board
+        center_x = (self.width // 2) // self.cell_size * self.cell_size
+        center_y = (self.height // 2) // self.cell_size * self.cell_size
+        self.snake_head = SnakeCell(x=center_x, y=center_y, size=self.cell_size)
         self.snake_body = [self.snake_head]
         self.snake_speed = self.initial_speed
         

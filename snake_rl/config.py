@@ -251,6 +251,37 @@ PRESETS = {
         target_score=25.0
     ),
     
+    # NEW: Better learning configuration
+    "tabular_learning": QLearningConfig(
+        learning_rate=0.15,
+        epsilon_start=1.0,
+        epsilon_end=0.1,  # Keep more exploration
+        epsilon_decay=0.9995,  # Much slower decay
+        max_episodes=2000,
+        eval_frequency=200,
+        log_frequency=100,
+        target_score=5.0  # More achievable target
+    ),
+    
+    # NEW: Lightning fast DQN training
+    "dqn_lightning": DQNConfig(
+        hidden_layers=[128, 64],  # Smaller network
+        learning_rate=0.005,      # Higher learning rate
+        epsilon_start=1.0,
+        epsilon_end=0.05,
+        epsilon_decay=0.995,      # Faster decay
+        buffer_size=5000,         # Smaller buffer
+        batch_size=64,            # Larger batches
+        min_replay_size=500,      # Start training sooner
+        target_update_frequency=250,  # More frequent updates
+        max_episodes=1000,
+        max_steps_per_episode=200,  # Shorter episodes
+        train_frequency=2,        # Train more often
+        eval_frequency=100,
+        log_frequency=25,
+        target_score=15.0
+    ),
+    
     "dqn_fast": DQNConfig(
         hidden_layers=[256, 128],
         learning_rate=0.002,

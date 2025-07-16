@@ -198,6 +198,7 @@ class SnakeTrainer:
         # Paths
         self.checkpoint_dir = config.get('checkpoint_dir', 'checkpoints')
         self.log_dir = config.get('log_dir', 'logs')
+        self.model_name = config.get('model_name', 'agent')
         
         # Training state
         self.current_episode = 0
@@ -391,7 +392,7 @@ class SnakeTrainer:
         os.makedirs(self.checkpoint_dir, exist_ok=True)
         
         suffix = 'final' if final else f'ep{episode}'
-        checkpoint_path = os.path.join(self.checkpoint_dir, f'agent_{suffix}.pth')
+        checkpoint_path = os.path.join(self.checkpoint_dir, f'{self.model_name}_{suffix}.pth')
         
         self.agent.save(checkpoint_path)
         logger.info(f"Checkpoint saved: {checkpoint_path}")
